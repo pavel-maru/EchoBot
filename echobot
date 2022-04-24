@@ -1,0 +1,26 @@
+# echobot: мой первый телебот
+
+import telebot
+
+token = ''
+
+bot = telebot.TeleBot(token)
+
+name1 = 'Паша'
+name2 = 'Вася'
+name3 = 'Лена'
+
+
+@bot.message_handler(content_types=['text'])
+def echo(message):
+    if name1 in message.text.capitalize():
+        text = f'Ба! {name1}! Знакомые всё лица!'
+    elif name2 in message.text.capitalize():
+        text = f'Бу! Привет, {name2}!'
+    elif name3 in message.text.capitalize():
+        text = f'{name3}, привет!'
+    else:
+        text = message.text
+    bot.send_message(message.chat.id, text)
+
+bot.polling(none_stop=True)
