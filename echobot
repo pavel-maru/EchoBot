@@ -1,24 +1,134 @@
-# echobot: мой первый телебот
+# todobot: планировщик задач
+# совмещённый с эхоботом
 
 import telebot
+
+from random import choice
 
 token = ''
 
 bot = telebot.TeleBot(token)
 
-name1 = 'Паша'
-name2 = 'Вася'
-name3 = 'Лена'
 
+RANDOM_TASKS = [
+    'Написать Гвидо письмо',
+    'Выучить Python',
+    'Записаться на курс в Нетологию',
+    'Посмотреть 4 сезон Рик и Морти'
+    ]
+
+HELP = """
+/help - напечатать справку по программе
+/add - добавить задачу в список (название задачи запрашиваем у пользователя)
+/show - напечатать все добавленные задачи
+/random - добавлять случайную задачу на дату СЕГОДНЯ
+/del - удалить неверно введённую или потерявшую актуальность задачу
+/done - пометить задачу выполненной
+"""
+
+NAME1 = 'Паша'
+NAME2 = 'Вася'
+NAME3 = 'Лена'
+
+tasks = {}
+
+def add_todo(date, task):
+    if date not in tasks:
+        # такой даты в словаре нет
+        # создаем запись с ключом date
+        tasks[date] = []
+    # Добавляем в список задачу
+    tasks[date].append(task)
+    # если такая задача уже есть в списке, убираем дубль
+    tasks[date] = list(set(tasks[date]))
+    return f'Задача {task} добавлена на дату {date}'
+
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.send_message(message.chat.id, HELP)
+
+@bot.message_handler(commands=['add', 'todo', 'random'])
+def todo(message):
+    command = message.text.split(maxsplit=2)
+    if command[0] == '/random':
+        date = 'сегодня'
+        task = choice(RANDOM_TASKS)
+        text = add_todo(date, task)
+    else:
+        # проверяем команду на валидность
+        if len(command) < 3:
+            text = f'Введите команду в формате:\n/add дата задача'
+        else:
+            date = command[1].lower()
+            task = command[2]
+            text = add_todo(date, task)
+    bot.send_message(message.chat.id, text)
+
+@bot.message_handler(commands=['show', 'print'])
+def show(message): #message.text = /print <date>
+    if not tasks:
+        text = f'Задач пока нет.\nДобавьте задачу с помощью команд:\n/add, /todo, /random\nВывод справки: /help'
+    else:
+        command = message.text.split(maxsplit=1)
+        # если в команде не указана дата, выводим задания по всем датам
+        if len(command) == 1:
+            dates = tasks.keys()
+            text = ''
+            for date in dates:
+                text = f'{text}{date.upper()}\n'
+                for task in tasks[date]:
+                    text = f'{text}[] {task}\n'
+                text = f'{text}\n'
+        else:
+            date = command[1].lower()
+            text = ''
+            if date in tasks:
+                text = f'{date.upper()}\n'
+                for task in tasks[date]:
+                    text = f'{text}[] {task}\n'
+            else:
+                text = f'Задач на дату {date} нет.'
+    bot.send_message(message.chat.id, text)
+
+@bot.message_handler(commands=['del', 'delete', 'erase'])
+def delete(message):
+    command = message.text.split(maxsplit=2)
+    if len(command) == 1:
+            text = f'Введите команду в формате:\n/del дата задача (для удаления выбранной задачи)\nИли в формате:\n/del дата (для удаления всех задач на выбранную дату)'
+    elif len(command) == 2:
+        date = command[1].lower()
+        if date in tasks:
+            del tasks[date]
+            text = f'Все задачи на дату {date} удалены.'
+        else:
+            text = f'Даты {date} пока нет в вашем списке'
+    else:
+        date = command[1].lower()
+        if date in tasks:
+            task = command[2]
+            if task in tasks[date]:
+                tasks[date].remove(task)
+                text = f'Задача {task} на дату {date} удалена.'
+            else:
+                text = f'Отсутствует задача {task} на дату {date}.'
+        else:
+            text = f'Даты {date} пока нет в вашем списке'
+    bot.send_message(message.chat.id, text)
+
+# @bot.message_handler(commands=['done'])
+# def done(message):
+#     command = message.text.split(maxsplit=2)
+#     text = 'Пометить задачу выполненной'
+#     bot.send_message(message.chat.id, text)
 
 @bot.message_handler(content_types=['text'])
 def echo(message):
-    if name1 in message.text.capitalize():
-        text = f'Ба! {name1}! Знакомые всё лица!'
-    elif name2 in message.text.capitalize():
-        text = f'Бу! Привет, {name2}!'
-    elif name3 in message.text.capitalize():
-        text = f'{name3}, привет!'
+    if NAME1 in message.text.capitalize():
+        text = f'Ба! {NAME1}! Знакомые всё лица!'
+    elif NAME2 in message.text.capitalize():
+        text = f'Бу! Привет, {NAME2}!'
+    elif NAME3 in message.text.capitalize():
+        text = f'{NAME3}, привет!'
     else:
         text = message.text
     bot.send_message(message.chat.id, text)
